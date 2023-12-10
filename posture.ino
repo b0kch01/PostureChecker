@@ -1,8 +1,11 @@
 #include <Wire.h>
+// #include <SoftwareSerial.h>
+
+// SoftwareSerial EEBlue(10, 11); // RX | TX
 
 const int MPU_ADDR = 0x68;   // I2C address of the MPU-6050
-const int RUNNING_AVG = 10;  // Running average size
-const int CYCLE_DELAY = 20;  // How long each report takes
+const int RUNNING_AVG = 100;  // Running average size
+const int CYCLE_DELAY = 2000;  // How long each report takes
 
 float elapsedTime, currentTime, previousTime;
 
@@ -10,7 +13,9 @@ float elapsedTime, currentTime, previousTime;
 float gyro_x, gyro_y, gyro_z;
 
 void setup() {
-  Serial.begin(19200);
+  Serial.begin(9600);
+  // EEBlue.begin(9600);
+
   Wire.begin();
   Wire.beginTransmission(MPU_ADDR);
   Wire.write(0x6B);  // PWR_MGMT_1 register
@@ -64,15 +69,26 @@ void pretty(float number) {
 }
 
 void logData(struct GyroData data) {
+  Serial.println("\033[0H\033[0J");
+
+  Serial.println("     roll    pitch      yaw");
+
   pretty(data.gyro_x);
   pretty(data.gyro_y);
   pretty(data.gyro_z);
-  Serial.println();
+
+  float sum = abs(data.gyro_x) + abs(data.gyro_y) + abs(data.gyro_z);
+  Serial.println("\n");
+  Serial.println(sum > 0.5 ? "    STRAIGHTEN YOUR BACK!! :((" : "         doing great :)");
+
+
   // Serial.print(data.gyro_x);
   // Serial.print("/");
   // Serial.print(data.gyro_y);
   // Serial.print("/");
   // Serial.println(data.gyro_z);
+
+  // EEBlue.write(data.gyro_y);
 }
 
 struct GyroData grabData() {
@@ -85,8 +101,8 @@ struct GyroData grabData() {
   float AccY = (Wire.read() << 8 | Wire.read()) / 16384.0;  // Y-axis value
   float AccZ = (Wire.read() << 8 | Wire.read()) / 16384.0;  // Z-axis value
 
-  float accAngleX = (atan(AccY / sqrt(pow(AccX, 2) + pow(AccZ, 2))) * 180 / PI) + 1.31;  // AccErrorX ~(0.58) See the calculate_IMU_error()custom function for more details
-  float accAngleY = (atan(-1 * AccX / sqrt(pow(AccY, 2) + pow(AccZ, 2))) * 180 / PI) + 58.37;
+  float accAngleX = (atan(AccY / sqrt(pow(AccX, 2) + pow(AccZ, 2))) * 180 / PI) + 76.45;  // AccErrorX ~(0.58) See the calculate_IMU_error()custom function for more details
+  float accAngleY = (atan(-1 * AccX / sqrt(pow(AccY, 2) + pow(AccZ, 2))) * 180 / PI) - 4.85;
 
   previousTime = currentTime;                         // Previous time is stored before the actual time read
   currentTime = millis();                             // Current time actual time read
@@ -102,9 +118,9 @@ struct GyroData grabData() {
   float GyroZ = (Wire.read() << 8 | Wire.read()) / 131.0;
 
   // error correction
-  GyroX -= 0.50;
-  GyroY -= 3.40;
-  GyroZ -= 1.11;
+  GyroX -= 0.69;
+  GyroY -= 3.17;
+  GyroZ -= 1.52;
 
 
   float gyroAngleX = gyroAngleX + GyroX * elapsedTime;
